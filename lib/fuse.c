@@ -438,6 +438,8 @@ static int fill_dir(struct fuse_dirhandle *dh, char *name, int type)
     return 0;
 }
 
+//write(f->fd, outbuf, outsize)
+//核心就是想 fuse->fd 写
 static int send_reply_raw(struct fuse *f, char *outbuf, size_t outsize,
                           int locked)
 {

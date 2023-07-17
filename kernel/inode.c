@@ -475,6 +475,7 @@ static struct super_block *fuse_read_super_compat(struct super_block *sb,
 static DECLARE_FSTYPE(fuse_fs_type, "fuse", fuse_read_super_compat, 0);
 #endif
 
+//初始化 fuse 文件系统，主要就是注册文件系统，然后创建一个 fuse_inode_cachep
 int fuse_fs_init()
 {
 	int err;

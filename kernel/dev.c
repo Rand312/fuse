@@ -19,6 +19,7 @@ static struct proc_dir_entry *proc_fs_fuse;
 struct proc_dir_entry *proc_fuse_dev;
 static kmem_cache_t *fuse_req_cachep;
 
+//请求分配一个 
 struct fuse_req *fuse_request_alloc(void)
 {
 	struct fuse_req *req;
@@ -691,12 +692,14 @@ int fuse_dev_init()
 	proc_fs_fuse = NULL;
 	proc_fuse_dev = NULL;
 
+	//创建一个 fuse_req_cachep
 	fuse_req_cachep = kmem_cache_create("fuser_request",
 					     sizeof(struct fuse_req),
 					     0, 0, NULL, NULL);
 	if (!fuse_req_cachep)
 		return -ENOMEM;
 
+	//
 	proc_fs_fuse = proc_mkdir("fuse", proc_root_fs);
 	if (proc_fs_fuse) {
 		struct proc_dir_entry *de;

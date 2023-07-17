@@ -19,6 +19,7 @@ MODULE_LICENSE("GPL");
 
 spinlock_t fuse_lock;
 
+//初始fuse
 int __init fuse_init(void)
 {
 	int res;
@@ -28,6 +29,7 @@ int __init fuse_init(void)
 	       FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
 
 	spin_lock_init(&fuse_lock);
+	//初始化 fuse 文件系统
 	res = fuse_fs_init();
 	if (res)
 		goto err;
