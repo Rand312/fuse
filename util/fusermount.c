@@ -621,6 +621,7 @@ static int try_open_new_temp(unsigned devnum, char **devp)
     return fd;
 }
 
+//打开 /dev/fuse 文件
 static int try_open_fuse_device(char **devp)
 {
     int fd = try_open(FUSE_DEV_NEW, devp, 1);

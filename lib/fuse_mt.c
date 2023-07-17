@@ -22,6 +22,8 @@ struct fuse_worker {
     struct fuse *f;
     pthread_t threads[FUSE_MAX_WORKERS];
     void *data;
+    //typedef void (*fuse_processor_t)(struct fuse *, struct fuse_cmd *, void *);
+    //处理命令的一个 函数类型
     fuse_processor_t proc;
 };
 
@@ -60,6 +62,7 @@ static void *do_work(void *data)
         if (cmd == NULL)
             continue;
 
+        //动态创建线程
         if (f->numavail == 0 && f->numworker < FUSE_MAX_WORKERS) {
             pthread_mutex_lock(&f->lock);
             if (f->numworker < FUSE_MAX_WORKERS) {

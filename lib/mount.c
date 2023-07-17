@@ -108,6 +108,7 @@ int fuse_mount(const char *mountpoint, const char *opts)
         fcntl(fds[0], F_SETFD, 0);
         snprintf(env, sizeof(env), "%i", fds[0]);
         setenv(FUSE_COMMFD_ENV, env, 1);
+        //执行 fusermount，其中会打开 /dev/fuse 然后挂载
         execvp(mountprog, (char **) argv);
         perror("fuse: failed to exec fusermount");
         exit(1);

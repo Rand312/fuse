@@ -53,7 +53,7 @@ static void exit_handler()
     if (fuse_instance != NULL)
         fuse_exit(fuse_instance);
 }
-
+//设置signal信号的handler
 static int set_one_signal_handler(int signal, void (*handler)(int))
 {
     struct sigaction sa;
@@ -76,7 +76,7 @@ static int set_one_signal_handler(int signal, void (*handler)(int))
     }
     return 0;
 }
-
+//设置信号handler
 static int set_signal_handlers()
 {
     if (set_one_signal_handler(SIGHUP, exit_handler) == -1 ||
@@ -88,6 +88,7 @@ static int set_signal_handlers()
     return 0;
 }
 
+//在 *optp 的位置上的字符串重新设置为 opt
 static int add_option_to(const char *opt, char **optp)
 {
     unsigned len = strlen(opt);
@@ -319,7 +320,7 @@ void __fuse_teardown(struct fuse *fuse, int fd, char *mountpoint)
     free(mountpoint);
 }
 
-
+//fuse_main(argc, argv, &hello_oper);
 int fuse_main(int argc, char *argv[], const struct fuse_operations *op)
 {
     struct fuse *fuse;
