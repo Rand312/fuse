@@ -571,12 +571,12 @@ static struct fuse_ll_pipe *fuse_ll_get_pipe(struct fuse_session *se)
 {
 	struct fuse_ll_pipe *llp = pthread_getspecific(se->pipe_key);
 	if (llp == NULL) {
-		int res;
-
+		int res;	
+		//分配一个 fuse_pipe 结构体
 		llp = malloc(sizeof(struct fuse_ll_pipe));
 		if (llp == NULL)
 			return NULL;
-
+		//创建管道
 		res = fuse_pipe(llp->pipe);
 		if (res == -1) {
 			free(llp);
@@ -622,18 +622,22 @@ static int read_back(int fd, char *buf, size_t len)
 	return 0;
 }
 
+//重新设置管道为系统支持的最大值
 static int grow_pipe_to_max(int pipefd)
 {
 	int max;
 	int res;
 	int maxfd;
 	char buf[32];
-
+// 	cat /proc/sys/fs/pipe-max-size
+// 1048576
+	//此文件记录了 pipe 可以设置的最大值
 	maxfd = open("/proc/sys/fs/pipe-max-size", O_RDONLY);
 	if (maxfd < 0)
 		return -errno;
-
+	//读取该文件获取最大值
 	res = read(maxfd, buf, sizeof(buf) - 1);
+	// 小于 0 ，返回错
 	if (res < 0) {
 		int saved_errno;
 
@@ -643,11 +647,13 @@ static int grow_pipe_to_max(int pipefd)
 	}
 	close(maxfd);
 	buf[res] = '\0';
-
+	//返回的是字符串，这里转为 int
 	max = atoi(buf);
+	//调用 fcntl 重新设置 pipe 大小为 系统最大值
 	res = fcntl(pipefd, F_SETPIPE_SZ, max);
 	if (res < 0)
 		return -errno;
+	//返回可以设置的最大值
 	return max;
 }
 
@@ -2852,16 +2858,24 @@ int fuse_session_receive_buf_int(struct fuse_session *se, struct fuse_buf *buf,
 	if (se->conn.proto_minor < 14 || !(se->conn.want & FUSE_CAP_SPLICE_READ))
 		goto fallback;
 
+	//分配和创建一个管道
 	llp = fuse_ll_get_pipe(se);
 	if (llp == NULL)
 		goto fallback;
-
+	//如果管道大小 小于 bufsize，扩大
 	if (llp->size < bufsize) {
+		//如果设置了 can_grow = 1，（默认情况下是设置的））
 		if (llp->can_grow) {
+			//调用 fcntl 来设置管道的大小
 			res = fcntl(llp->pipe[0], F_SETPIPE_SZ, bufsize);
+			//如果返回 -1 出错，那么可能是 设置的大小 太大，系统不支持
 			if (res == -1) {
+				//设置为不能再增长 pipe 大小
 				llp->can_grow = 0;
+				//这里查询内核可以设置的最大值，然后设置为该值
+				//这里返回的 res 也是这个最大值
 				res = grow_pipe_to_max(llp->pipe[0]);
+				//如果返回了最大值，更新 “记录值”
 				if (res > 0)
 					llp->size = res;
 				goto fallback;
@@ -2871,37 +2885,42 @@ int fuse_session_receive_buf_int(struct fuse_session *se, struct fuse_buf *buf,
 		if (llp->size < bufsize)
 			goto fallback;
 	}
-
+	//如果有自定义IO 并且自定义了 slice_recive，那么使用自定义的 splice_receive
 	if (se->io != NULL && se->io->splice_receive != NULL) {
 		res = se->io->splice_receive(ch ? ch->fd : se->fd, NULL,
 						     llp->pipe[1], NULL, bufsize, 0,
 						     se->userdata);
 	} else {
+	//否则直接使用 splice 
 		res = splice(ch ? ch->fd : se->fd, NULL, llp->pipe[1], NULL,
 				 bufsize, 0);
 	}
 	err = errno;
 
+	//这里判断一下是否退出，为什么这里需要判断一下？
 	if (fuse_session_exited(se))
 		return 0;
 
+	//如果返回错误
 	if (res == -1) {
+		//返回此标志可能是因为filesystem未挂载，或者是链接abort
 		if (err == ENODEV) {
 			/* Filesystem was unmounted, or connection was aborted
 			   via /sys/fs/fuse/connections */
 			fuse_session_exit(se);
-			return 0;
+			return 0;ch
 		}
 		if (err != EINTR && err != EAGAIN)
 			perror("fuse: splice from device");
 		return -err;
 	}
-
+	//splice 返回的是移动数据的长度，正常情况下不应该小于 fuse_in_header
+	//打印日志，返回错误
 	if (res < sizeof(struct fuse_in_header)) {
 		fuse_log(FUSE_LOG_ERR, "short splice from fuse device\n");
 		return -EIO;
 	}
-
+	
 	tmpbuf = (struct fuse_buf) {
 		.size = res,
 		.flags = FUSE_BUF_IS_FD,
@@ -2955,6 +2974,8 @@ int fuse_session_receive_buf_int(struct fuse_session *se, struct fuse_buf *buf,
 
 fallback:
 #endif
+	//不使用 splice 实现零拷贝
+	//如果还没有分配 mem，分配
 	if (!buf->mem) {
 		buf->mem = malloc(se->bufsize);
 		if (!buf->mem) {
@@ -2965,18 +2986,22 @@ fallback:
 	}
 
 restart:
+	//如果有自定义的 IO，使用自定义的 read
 	if (se->io != NULL) {
 		/* se->io->read is never NULL if se->io is not NULL as
 		specified by fuse_session_custom_io()*/
 		res = se->io->read(ch ? ch->fd : se->fd, buf->mem, se->bufsize,
 					 se->userdata);
 	} else {
+		//否则就是最简单的 read 系统调用，内核调用 fuse_dev_read 获取请求，读取最大值
 		res = read(ch ? ch->fd : se->fd, buf->mem, se->bufsize);
 	}
 	err = errno;
 
+	//检测是否退出了
 	if (fuse_session_exited(se))
 		return 0;
+	//read 返回 -1
 	if (res == -1) {
 		/* ENOENT means the operation was interrupted, it's safe
 		   to restart */
@@ -2996,6 +3021,7 @@ restart:
 			perror("fuse: reading device");
 		return -err;
 	}
+	//read 返回的大小 太小，return EIO
 	if ((size_t) res < sizeof(struct fuse_in_header)) {
 		fuse_log(FUSE_LOG_ERR, "short read on fuse device\n");
 		return -EIO;
@@ -3024,6 +3050,7 @@ struct fuse_session *fuse_session_new(struct fuse_args *args,
 		return NULL;
 	}
 
+	//分配session结构体
 	se = (struct fuse_session *) calloc(1, sizeof(struct fuse_session));
 	if (se == NULL) {
 		fuse_log(FUSE_LOG_ERR, "fuse: failed to allocate fuse object\n");
@@ -3065,7 +3092,7 @@ struct fuse_session *fuse_session_new(struct fuse_args *args,
 
 	if (se->debug)
 		fuse_log(FUSE_LOG_DEBUG, "FUSE library version: %s\n", PACKAGE_VERSION);
-
+	//设置 session 最大 bufsize，一般 4K，那么这里大小应该是 1M+header size
 	se->bufsize = FUSE_MAX_MAX_PAGES * getpagesize() +
 		FUSE_BUFFER_HEADER_SIZE;
 
@@ -3074,15 +3101,16 @@ struct fuse_session *fuse_session_new(struct fuse_args *args,
 	list_init_nreq(&se->notify_list);
 	se->notify_ctr = 1;
 	pthread_mutex_init(&se->lock, NULL);
-
+	//创建一个 pipe 销毁线程，怎么用的？？？
 	err = pthread_key_create(&se->pipe_key, fuse_ll_pipe_destructor);
 	if (err) {
 		fuse_log(FUSE_LOG_ERR, "fuse: failed to create thread specific key: %s\n",
 			strerror(err));
 		goto out5;
 	}
-
+	//复制 自定义文件系统 的 操作函数集
 	memcpy(&se->op, op, op_size);
+	//设置 owner 为uid
 	se->owner = getuid();
 	se->userdata = userdata;
 

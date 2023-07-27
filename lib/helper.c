@@ -364,6 +364,7 @@ int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
 		goto out3;
 	}
 
+	//如果只有一个线程处理请求，fuse_loop 会“死循环”
 	if (opts.singlethread)
 		res = fuse_loop(fuse);
 	else {

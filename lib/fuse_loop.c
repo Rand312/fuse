@@ -22,15 +22,16 @@ int fuse_session_loop(struct fuse_session *se)
 	struct fuse_buf fbuf = {
 		.mem = NULL,
 	};
-
+	//如果fuse没有退出
 	while (!fuse_session_exited(se)) {
+		//从dev接收kernel fuse drive传递过来的请求
 		res = fuse_session_receive_buf_int(se, &fbuf, NULL);
 
 		if (res == -EINTR)
 			continue;
 		if (res <= 0)
 			break;
-
+		//处理这个请求
 		fuse_session_process_buf_int(se, &fbuf, NULL);
 	}
 
