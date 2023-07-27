@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 		ret = 1;
 		goto err_out1;
 	}
-
+	//每次 main 都会创建一个新的 session
 	se = fuse_session_new(&args, &hello_ll_oper,
 			      sizeof(hello_ll_oper), NULL);
 	if (se == NULL)

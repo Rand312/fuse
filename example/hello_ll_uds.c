@@ -341,6 +341,10 @@ int main(int argc, char *argv[])
 	if (cfd == -1)
 		goto err_out3;
 
+	//	se->fd = fd;
+	// *se->io = *io;
+	// 所以是这里设置了 se->fd 为 cfd = create_socket("/tmp/libfuse-hello-ll.sock"); 
+	//干嘛用？？？
 	if (fuse_session_custom_io(se, &io, cfd) != 0)
 		goto err_out3;
 
