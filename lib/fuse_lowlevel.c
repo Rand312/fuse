@@ -2685,7 +2685,7 @@ void fuse_session_process_buf_int(struct fuse_session *se,
 			opname((enum fuse_opcode) in->opcode), in->opcode,
 			(unsigned long long) in->nodeid, buf->size, in->pid);
 	}
-
+	//处理的时候分配一个 req
 	req = fuse_ll_alloc_req(se);
 	if (req == NULL) {
 		struct fuse_out_header out = {
@@ -2731,6 +2731,7 @@ void fuse_session_process_buf_int(struct fuse_session *se,
 	err = ENOSYS;
 	if (in->opcode >= FUSE_MAXOP || !fuse_ll_ops[in->opcode].func)
 		goto reply_err;
+	//
 	if (in->opcode != FUSE_INTERRUPT) {
 		struct fuse_req *intr;
 		pthread_mutex_lock(&se->lock);
