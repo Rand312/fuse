@@ -826,6 +826,7 @@ static void lo_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
 	if (fd == -1)
 		return (void) fuse_reply_err(req, errno);
 
+	//file handle指的是实际的fd
 	fi->fh = fd;
 	if (lo->cache == CACHE_NEVER)
 		fi->direct_io = 1;
