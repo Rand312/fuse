@@ -688,7 +688,7 @@ static int mount_fuse(const char *mnt, const char *opts)
     char *mnt_opts;
     const char *real_mnt = mnt;
     int currdir_fd = -1;
-
+    //打开/dev/fuse
     fd = open_fuse_device(&dev);
     if (fd == -1)
         return -1;
@@ -941,7 +941,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: old style mounting not supported\n", progname);
         exit(1);
     }
-
+    //打开/dev/fuse，返回fd
     fd = mount_fuse(mnt, opts);
     if (fd == -1)
         exit(1);

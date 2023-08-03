@@ -280,6 +280,7 @@ struct fuse *__fuse_setup(int argc, char *argv[],
         goto err_unmount;
 
     if (background) {
+        //创建守护进程
         res = daemon(0, 0);
         if (res == -1) {
             perror("fuse: failed to daemonize program\n");
