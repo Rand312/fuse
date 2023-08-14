@@ -74,6 +74,7 @@ static struct fuse_chan *fuse_chan_new(int fd)
 
 	memset(ch, 0, sizeof(*ch));
 	ch->fd = fd;
+	//应该是相当于引用计数的作用
 	ch->ctr = 1;
 	pthread_mutex_init(&ch->lock, NULL);
 

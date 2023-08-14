@@ -69,7 +69,9 @@ struct fuse_session {
 
 struct fuse_chan {
 	pthread_mutex_t lock;
+	//应该是相当于引用计数的作用
 	int ctr;
+	//fuse驱动通信fd，一般情况下就是打开 /dev/fuse 时获得的fd
 	int fd;
 };
 

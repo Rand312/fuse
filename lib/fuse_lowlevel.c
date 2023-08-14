@@ -435,6 +435,7 @@ int fuse_reply_create(fuse_req_t req, const struct fuse_entry_param *e,
 	struct fuse_open_out *oarg = (struct fuse_open_out *) (buf + entrysize);
 
 	memset(buf, 0, sizeof(buf));
+	// craete 的时候就创建了
 	fill_entry(earg, e);
 	fill_open(oarg, f);
 	return send_reply_ok(req, buf,
